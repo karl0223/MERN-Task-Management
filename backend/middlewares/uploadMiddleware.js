@@ -1,14 +1,18 @@
 const multer = require("multer");
+const path = require("path");
 
-// Configure storage
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/");
-  },
-  filename: (req, file, cb) => {
-    cb(null, `${Date.now()}=${file.originalname}`);
-  },
-});
+// Configure local storage
+// const storage = multer.diskStorage({
+//   destination: (req, file, cb) => {
+//     cb(null, "uploads/");
+//   },
+//   filename: (req, file, cb) => {
+//     cb(null, `${Date.now()}=${file.originalname}`);
+//   },
+// });
+
+// Store file temporarily in memory
+const storage = multer.memoryStorage();
 
 // File filter
 const fileFilter = (req, file, cb) => {
@@ -16,7 +20,7 @@ const fileFilter = (req, file, cb) => {
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error("Only .jpeg .jpg and .png formats are allowed"), false);
+    cb(new Error("Only .jpeg, .jpg, and .png formats are allowed"), false);
   }
 };
 
