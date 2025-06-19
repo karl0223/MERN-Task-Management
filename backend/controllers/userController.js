@@ -3,7 +3,7 @@ const User = require("../models/User");
 
 const getUsers = async (req, res) => {
   try {
-    const users = await User.find({ role: "member" }).select("-password");
+    const users = await User.find({ role: "user" }).select("-password");
 
     // Add task counts to each user
     const usersWithTaskCounts = await Promise.all(
