@@ -10,11 +10,12 @@
 @layer base {
   html {
     font-family: var(--font-display);
+    scroll-behavior: smooth;
   }
 
   body {
     background-color: #fcfbfc;
-    overflow: hidden;
+    /* overflow: hidden; */
   }
 }
 
