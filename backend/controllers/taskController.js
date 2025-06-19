@@ -45,7 +45,11 @@ const getTasks = async (req, res) => {
 
     // Status summary counts
     const allTasks = await Task.countDocuments(
-      isSuperAdmin || isOrgAdmin ? {} : { assignedTo: req.user._id }
+      isSuperAdmin
+        ? {}
+        : isOrgAdmin
+        ? { orgId: req.user.orgId }
+        : { assignedTo: req.user._id }
     );
 
     const pendingTasks = await Task.countDocuments({

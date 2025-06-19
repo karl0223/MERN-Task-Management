@@ -1,6 +1,7 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const Org = require("../models/Org");
 
 // Generate JWT Token
 const generateToken = (userId) => {
@@ -79,6 +80,8 @@ const loginUser = async (req, res) => {
       return res.status(401).json({ message: "Invalid email or password" });
     }
 
+    let org = await Org.findById(user.orgId).select("name inviteCode");
+
     // Return user data with JWT
     res.status(200).json({
       _id: user._id,
@@ -87,7 +90,7 @@ const loginUser = async (req, res) => {
       role: user.role,
       profileImageUrl: user.profileImageUrl,
       token: generateToken(user._id),
-      orgId: user.orgId,
+      orgId: org ? org : undefined,
       orgRole: user.orgRole,
     });
   } catch (error) {
