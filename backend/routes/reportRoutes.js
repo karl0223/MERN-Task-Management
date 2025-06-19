@@ -1,5 +1,8 @@
 const express = require("express");
-const { protect, adminOnly } = require("../middlewares/authMiddleware");
+const {
+  protect,
+  requireAdminAccess,
+} = require("../middlewares/authMiddleware");
 const {
   exportTasksReport,
   exportUsersReport,
@@ -7,7 +10,7 @@ const {
 
 const router = express.Router();
 
-router.get("/export/tasks", protect, adminOnly, exportTasksReport);
-router.get("/export/users", protect, adminOnly, exportUsersReport);
+router.get("/export/tasks", protect, requireAdminAccess, exportTasksReport);
+router.get("/export/users", protect, requireAdminAccess, exportUsersReport);
 
 module.exports = router;

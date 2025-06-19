@@ -39,14 +39,14 @@ function Login() {
         password,
       });
 
-      const { token, role } = response.data;
+      const { token, role, orgRole } = response.data;
 
       if (token) {
         localStorage.setItem("token", token);
         updateUser(response.data);
 
         // Redirect based on role
-        if (role === "admin") {
+        if (role === "superadmin" || orgRole === "admin") {
           navigate("/admin/dashboard");
         } else {
           navigate("/user/dashboard");

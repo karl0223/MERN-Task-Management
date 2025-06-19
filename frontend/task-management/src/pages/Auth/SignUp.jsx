@@ -67,7 +67,7 @@ function SignUp() {
       }
 
       // Redirect based on role
-      if (role === "admin") {
+      if (role === "superadmin") {
         navigate("/admin/dashboard");
       } else {
         navigate("/user/dashboard");

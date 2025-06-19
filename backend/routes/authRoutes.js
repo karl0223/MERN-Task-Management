@@ -14,6 +14,11 @@ const s3Client = require("../config/aws-config");
 
 const router = express.Router();
 
+// Ping server
+router.get("/ping-server", (req, res) => {
+  res.json({ message: "Success" });
+});
+
 // Auth Routes
 router.post("/register", registerUser);
 router.post("/login", loginUser);

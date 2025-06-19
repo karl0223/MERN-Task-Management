@@ -8,6 +8,8 @@ const userSchema = new mongoose.Schema(
     },
     email: {
       type: String,
+      unique: true,
+      lowercase: true,
       required: true,
     },
     password: {
@@ -20,8 +22,17 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
+      enum: ["superadmin", "user"],
+      default: "user",
+    },
+    orgId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Org",
+      index: true,
+    },
+    orgRole: {
+      type: String,
       enum: ["admin", "member"],
-      default: "member",
     },
   },
   {

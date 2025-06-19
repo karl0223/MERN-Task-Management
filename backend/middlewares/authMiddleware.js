@@ -21,11 +21,31 @@ const protect = async (req, res, next) => {
 
 // Middleware for Admin-only access
 const adminOnly = async (req, res, next) => {
-  if (req.user && req.user.role === "admin") {
+  if (req.user && req.user.role === "superadmin") {
     next();
   } else {
     res.status(403).json({ message: "Access denied, admin only" });
   }
 };
 
-module.exports = { protect, adminOnly };
+const requireOrgAdmin = async (req, res, next) => {
+  const user = req.user;
+
+  if (!user.orgRole || user.orgRole !== "admin") {
+    return res.status(403).json({ message: "Admins only" });
+  }
+
+  next();
+};
+
+const requireAdminAccess = (req, res, next) => {
+  const user = req.user;
+
+  if (user?.role === "superadmin" || user?.orgRole === "admin") {
+    return next();
+  }
+
+  return res.status(403).json({ message: "Access denied: admin only" });
+};
+
+module.exports = { protect, adminOnly, requireOrgAdmin, requireAdminAccess };

@@ -1,29 +1,39 @@
 const Task = require("../models/Task");
+const checkPermissions = require("../utils/utils");
 
 const getTasks = async (req, res) => {
   try {
     const { status } = req.query;
-    let filter = {};
+    const { isSuperAdmin, isOrgAdmin, isOrgMember } = checkPermissions(
+      req.user
+    );
+
+    const filter = {};
 
     if (status) {
       filter.status = status;
     }
 
-    let tasks;
-
-    if (req.user.role === "admin") {
-      tasks = await Task.find(filter).populate(
-        "assignedTo",
-        "name email profileImageUrl"
-      );
-    } else {
-      tasks = await Task.find({ ...filter, assignedTo: req.user._id }).populate(
-        "assignedTo",
-        "name email profileImageUrl"
-      );
+    // Role-based task filtering
+    if (isSuperAdmin) {
+      // superadmin sees all tasks
+      // no additional filter needed
+    } else if (isOrgAdmin) {
+      // org admin sees all tasks in their org
+      filter.orgId = req.user.orgId;
+    } else if (isOrgMember) {
+      // member sees only their tasks
+      filter.orgId = req.user.orgId;
+      filter.assignedTo = req.user._id;
     }
 
-    // Add completed todoCheclist count to each task
+    // Fetch tasks
+    let tasks = await Task.find(filter).populate(
+      "assignedTo",
+      "name email profileImageUrl"
+    );
+
+    // Add completed todoChecklist count to each task
     tasks = await Promise.all(
       tasks.map(async (task) => {
         const completedCount = task.todoChecklist.filter(
@@ -35,25 +45,22 @@ const getTasks = async (req, res) => {
 
     // Status summary counts
     const allTasks = await Task.countDocuments(
-      req.user.role === "admin" ? {} : { assignedTo: req.user._id }
+      isSuperAdmin || isOrgAdmin ? {} : { assignedTo: req.user._id }
     );
 
     const pendingTasks = await Task.countDocuments({
       ...filter,
       status: "Pending",
-      ...(req.user.role !== "admin" && { assignedTo: req.user._id }),
     });
 
     const inProgressTasks = await Task.countDocuments({
       ...filter,
       status: "In Progress",
-      ...(req.user.role !== "admin" && { assignedTo: req.user._id }),
     });
 
     const completedTasks = await Task.countDocuments({
       ...filter,
       status: "Completed",
-      ...(req.user.role !== "admin" && { assignedTo: req.user._id }),
     });
 
     res.json({
@@ -72,7 +79,28 @@ const getTasks = async (req, res) => {
 
 const getTaskById = async (req, res) => {
   try {
-    const task = await Task.findById(req.params.id).populate(
+    const { isSuperAdmin, isOrgAdmin, isOrgMember } = checkPermissions(
+      req.user
+    );
+
+    const filter = {
+      _id: req.params.id,
+    };
+
+    // Role-based task filtering
+    if (isSuperAdmin) {
+      // superadmin sees all tasks
+      // no additional filter needed
+    } else if (isOrgAdmin) {
+      // org admin sees all tasks in their org
+      filter.orgId = req.user.orgId;
+    } else if (isOrgMember) {
+      // member sees only their tasks
+      filter.orgId = req.user.orgId;
+      filter.assignedTo = req.user._id;
+    }
+
+    const task = await Task.findOne(filter).populate(
       "assignedTo",
       "name email profileImageUrl"
     );
@@ -87,6 +115,8 @@ const getTaskById = async (req, res) => {
 
 const createTask = async (req, res) => {
   try {
+    const { isOrgAdmin } = checkPermissions(req.user);
+
     const {
       title,
       description,
@@ -97,21 +127,38 @@ const createTask = async (req, res) => {
       todoChecklist,
     } = req.body;
 
+    if (!isOrgAdmin) {
+      return res
+        .status(400)
+        .json({ message: "Failed to create task", error: error.message });
+    }
+
     if (!Array.isArray(assignedTo)) {
       return res
         .status(400)
         .json({ message: "assignedTo must be an array of user IDs" });
     }
 
+    if (
+      !assignedTo.every((user) => String(user.orgId) === String(req.user.orgId))
+    ) {
+      return res
+        .status(403)
+        .json({ message: "Users must belong to the same organization." });
+    }
+
+    const assignedToIds = assignedTo?.map((user) => user.userId);
+
     const task = await Task.create({
       title,
       description,
       priority,
       dueDate,
-      assignedTo,
+      assignedTo: assignedToIds,
       createdBy: req.user._id,
       attachments,
       todoChecklist,
+      orgId: req.user.orgId,
     });
 
     res.status(201).json({ message: "Task created successfully", task });
@@ -129,9 +176,30 @@ const updateTask = async (req, res) => {
     assignedTo,
     attachments,
     todoChecklist,
+    orgId,
   } = req.body;
   try {
-    const task = await Task.findById(req.params.id);
+    const { isSuperAdmin, isOrgAdmin, isOrgMember } = checkPermissions(
+      req.user
+    );
+
+    const filter = {
+      _id: req.params.id,
+    };
+
+    // Role-based task filtering
+    if (isSuperAdmin) {
+      // superadmin sees all tasks
+      // no additional filter needed
+    } else if (isOrgAdmin) {
+      // org admin sees all tasks in their org
+      filter.orgId = req.user.orgId;
+    } else if (isOrgMember) {
+      // member sees only their tasks
+      filter.orgId = req.user.orgId;
+      filter.assignedTo = req.user._id;
+    }
+    const task = await Task.findOne(filter);
 
     if (!task) return res.status(404).json({ message: "Task not found" });
 
@@ -141,13 +209,26 @@ const updateTask = async (req, res) => {
     task.dueDate = dueDate || task.dueDate;
     task.todoChecklist = todoChecklist || task.todoChecklist;
     task.attachments = attachments || task.attachments;
+    task.orgId = orgId || task.orgId;
 
     if (assignedTo) {
       if (!Array.isArray(assignedTo)) {
         return res.status(400).json({ message: "assignedTo must be an array" });
       }
 
-      task.assignedTo = assignedTo;
+      if (
+        !assignedTo.every(
+          (user) => String(user.orgId) === String(req.user.orgId)
+        )
+      ) {
+        return res
+          .status(403)
+          .json({ message: "Users must belong to the same organization." });
+      }
+
+      const assignedToIds = assignedTo?.map((user) => user.userId);
+
+      task.assignedTo = assignedToIds;
     }
 
     const updatedTask = await task.save();
@@ -245,11 +326,23 @@ const updateTaskChecklist = async (req, res) => {
 
 const getDashboardData = async (req, res) => {
   try {
+    const { isSuperAdmin } = checkPermissions(req.user);
+
+    // Base filter depending on role
+    const filter = isSuperAdmin ? {} : { orgId: req.user.orgId };
+
     // Fetch statistics
-    const totalTasks = await Task.countDocuments();
-    const pendingTasks = await Task.countDocuments({ status: "Pending" });
-    const completedTasks = await Task.countDocuments({ status: "Completed" });
+    const totalTasks = await Task.countDocuments(filter);
+    const pendingTasks = await Task.countDocuments({
+      ...filter,
+      status: "Pending",
+    });
+    const completedTasks = await Task.countDocuments({
+      ...filter,
+      status: "Completed",
+    });
     const overdueTasks = await Task.countDocuments({
+      ...filter,
       status: { $ne: "Completed" },
       dueDate: { $lt: new Date() },
     });
@@ -257,6 +350,7 @@ const getDashboardData = async (req, res) => {
     // Ensure all possible statuses are included
     const taskStatuses = ["Pending", "In Progress", "Completed"];
     const taskDistributionRaw = await Task.aggregate([
+      { $match: filter },
       {
         $group: {
           _id: "$status",
@@ -276,6 +370,7 @@ const getDashboardData = async (req, res) => {
     // Ensure all priority levels are included
     const taskPriorities = ["Low", "Medium", "High"];
     const taskPriorityLevelsRaw = await Task.aggregate([
+      { $match: filter },
       {
         $group: {
           _id: "$priority",
@@ -291,7 +386,7 @@ const getDashboardData = async (req, res) => {
     }, {});
 
     // Fetch recent 10 tasks
-    const recentTasks = await Task.find()
+    const recentTasks = await Task.find(filter)
       .sort({ createdAt: -1 })
       .limit(10)
       .select("title status priority dueDate createdAt");

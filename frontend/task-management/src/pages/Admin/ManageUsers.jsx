@@ -5,13 +5,22 @@ import { API_PATHS } from "../../utils/apiPaths";
 import { LuFileSpreadsheet } from "react-icons/lu";
 import UserCard from "../../components/Cards/UserCard";
 import toast from "react-hot-toast";
+import { useContext } from "react";
+import { UserContext } from "../../context/userContext";
 
 function ManageUsers() {
   const [allUsers, setAllUsers] = useState([]);
 
+  const { user } = useContext(UserContext);
+
   const getAllUsers = async () => {
     try {
-      const response = await axiosInstance.get(API_PATHS.USERS.GET_ALL_USERS);
+      const apiURL =
+        user.role === "superadmin"
+          ? API_PATHS.USERS.GET_ALL_USERS
+          : API_PATHS.USERS.GET_ALL_ORG_USERS;
+
+      const response = await axiosInstance.get(apiURL);
       if (response.data?.length > 0) {
         setAllUsers(response.data);
       }

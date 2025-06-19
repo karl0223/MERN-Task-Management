@@ -1,10 +1,23 @@
 const Task = require("../models/Task");
 const User = require("../models/User");
 const excelJS = require("exceljs");
+const checkPermissions = require("../utils/utils");
 
 const exportTasksReport = async (req, res) => {
   try {
-    const tasks = await Task.find().populate("assignedTo", "name email");
+    const { isSuperAdmin, isOrgAdmin } = checkPermissions(req.user);
+
+    const filter = {};
+
+    // Role-based task filtering
+    if (isSuperAdmin) {
+      // no additional filter needed
+    } else if (isOrgAdmin) {
+      // org admin sees all tasks in their org
+      filter.orgId = req.user.orgId;
+    }
+
+    const tasks = await Task.find(filter).populate("assignedTo", "name email");
 
     const workbook = new excelJS.Workbook();
     const worksheet = workbook.addWorksheet("Tasks Report");
@@ -84,8 +97,21 @@ const exportTasksReport = async (req, res) => {
 
 const exportUsersReport = async (req, res) => {
   try {
-    const users = await User.find().select("name email _id").lean();
-    const userTasks = await Task.find().populate(
+    const { isSuperAdmin, isOrgAdmin } = checkPermissions(req.user);
+
+    const filter = {};
+
+    // Role-based task filtering
+    if (isSuperAdmin) {
+      // no additional filter needed
+    } else if (isOrgAdmin) {
+      // org admin sees all tasks in their org
+      filter.orgId = req.user.orgId;
+      filter.orgRole = "member";
+    }
+
+    const users = await User.find(filter).select("name email _id").lean();
+    const userTasks = await Task.find(filter).populate(
       "assignedTo",
       "name email _id"
     );

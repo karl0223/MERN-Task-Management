@@ -18,13 +18,21 @@ const registerUser = async (req, res) => {
       return res.status(400).json({ message: "User already exists" });
 
     // Determine user role: Admin if correct token is provided, otherwise member
-    let role = "member";
+    let role = "user";
 
     if (
       adminInviteToken &&
       adminInviteToken == process.env.ADMIN_INVITE_TOKEN
     ) {
-      role = "admin";
+      role = "superadmin";
+    }
+
+    // 🔒 Block conflicting roles
+    if (role === "superadmin") {
+      return res.status(400).json({
+        message:
+          "Superadmin must not be assigned to an organization or orgRole.",
+      });
     }
 
     // Hash password
@@ -79,6 +87,8 @@ const loginUser = async (req, res) => {
       role: user.role,
       profileImageUrl: user.profileImageUrl,
       token: generateToken(user._id),
+      orgId: user.orgId,
+      orgRole: user.orgRole,
     });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
@@ -87,7 +97,10 @@ const loginUser = async (req, res) => {
 
 const getUserProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select("-password");
+    const user = await User.findById(req.user.id)
+      .select("-password")
+      .populate("orgId", "name inviteCode");
+
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }

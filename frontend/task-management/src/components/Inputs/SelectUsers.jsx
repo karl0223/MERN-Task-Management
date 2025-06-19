@@ -12,7 +12,9 @@ function SelectUsers({ selectedUsers, setSelectedUsers }) {
 
   const getAllUsers = async () => {
     try {
-      const response = await axiosInstance.get(API_PATHS.USERS.GET_ALL_USERS);
+      const response = await axiosInstance.get(
+        API_PATHS.USERS.GET_ALL_ORG_USERS
+      );
       if (response.data?.length > 0) {
         setAllUsers(response.data);
       }
@@ -21,13 +23,27 @@ function SelectUsers({ selectedUsers, setSelectedUsers }) {
     }
   };
 
-  const toggleUserSelection = (userId) => {
-    setTempSelectedUsers((prev) =>
-      prev.includes(userId)
-        ? prev.filter((id) => id !== userId)
-        : [...prev, userId]
-    );
+  const toggleUserSelection = (userId, orgId) => {
+    setTempSelectedUsers((prev) => {
+      const alreadySelected = prev.some((user) => user.userId === userId);
+
+      if (alreadySelected) {
+        // Remove user if already selected
+        return prev.filter((user) => user.userId !== userId);
+      } else {
+        // Add user object
+        return [...prev, { userId, orgId }];
+      }
+    });
   };
+
+  // const toggleUserSelection = (userId, orgId) => {
+  //   setTempSelectedUsers((prev) =>
+  //     prev.includes(userId)
+  //       ? prev.filter((id) => id !== userId)
+  //       : [...prev, { userId, orgId }]
+  //   );
+  // };
 
   const handleAssign = () => {
     setSelectedUsers(tempSelectedUsers);
@@ -35,7 +51,11 @@ function SelectUsers({ selectedUsers, setSelectedUsers }) {
   };
 
   const selectedUserAvatars = allUsers
-    .filter((user) => selectedUsers.includes(user._id))
+    .filter((user) =>
+      selectedUsers.some(
+        (selected) => selected === user._id || selected.userId === user._id
+      )
+    )
     .map((user) => user.profileImageUrl);
 
   useEffect(() => {
@@ -89,8 +109,8 @@ function SelectUsers({ selectedUsers, setSelectedUsers }) {
 
               <input
                 type="checkbox"
-                checked={tempSelectedUsers.includes(user._id)}
-                onChange={() => toggleUserSelection(user._id)}
+                checked={tempSelectedUsers.some((u) => u.userId === user._id)}
+                onChange={() => toggleUserSelection(user._id, user.orgId)}
                 className="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded-sm outline-none"
               />
             </div>

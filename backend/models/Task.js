@@ -40,6 +40,7 @@ const taskSchema = new mongoose.Schema(
         ref: "User",
       },
     ],
+    orgId: { type: mongoose.Schema.Types.ObjectId, ref: "Org", required: true },
     createdBy: [
       {
         type: mongoose.Schema.Types.ObjectId,

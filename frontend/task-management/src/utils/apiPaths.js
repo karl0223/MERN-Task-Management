@@ -7,9 +7,15 @@ export const API_PATHS = {
     LOGIN: "/api/auth/login", // Authenticate user & return JWT token
     GET_PROFILE: "/api/auth/profile", // Get logged-in user details
   },
+  ORG: {
+    JOIN_ORG: "/api/org/join",
+    ORG_DETAILS: "/api/org/org-details",
+    CREATE_ORG: "/api/org/create-org",
+  },
 
   USERS: {
     GET_ALL_USERS: "/api/users", // Get all users (Admin only)
+    GET_ALL_ORG_USERS: "/api/users/org-users",
     GET_USER_BY_ID: (userId) => `/api/users/${userId}`, // Get user by ID
     CREATE_USER: "/api/users", // Create a new user (Admin only)
     UPDATE_USER: (userId) => `/api/users/${userId}`, // Update user details
