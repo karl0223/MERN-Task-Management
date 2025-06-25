@@ -21,7 +21,7 @@ function TodoListInput({ todoList, setTodoList }) {
     <div>
       {todoList.map((item, index) => (
         <div
-          key={item}
+          key={index}
           className="flex justify-between bg-gray-50 border border-gray-100 px-3 py-2 rounded-md mb-3 mt-2"
         >
           <p className="text-xs text-black">

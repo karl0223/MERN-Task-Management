@@ -13,6 +13,7 @@ import TodoListInput from "../../components/Inputs/TodoListInput";
 import AddAttachmentsInput from "../../components/Inputs/AddAttachmentsInput";
 import Modal from "../../components/Modal";
 import DeleteAlert from "../../components/DeleteAlert";
+import OcrSpaceUploader from "../../components/OcrSpaceUploader";
 
 function CreateTask() {
   const location = useLocation();
@@ -289,6 +290,17 @@ function CreateTask() {
                   }}
                 />
               </div>
+            </div>
+
+            <div className="mt-3">
+              <label className="text-xs font-medium text-slate-600">
+                Upload Tasks
+              </label>
+              <OcrSpaceUploader
+                setTodoList={(value) =>
+                  handleValueChange("todoChecklist", value)
+                }
+              />
             </div>
 
             <div className="">
