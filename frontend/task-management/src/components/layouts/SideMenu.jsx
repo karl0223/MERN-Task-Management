@@ -181,7 +181,8 @@ function SideMenu({ activeMenu }) {
               {user?.orgId.name || ""}
             </p>
             <p className="text-[12px] text-gray-500">
-              {user?.orgId.inviteCode || ""}
+              {user?.orgId?.inviteCode &&
+                `Invite code: ${user.orgId.inviteCode}`}
             </p>
           </div>
         )}
