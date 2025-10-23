@@ -220,17 +220,9 @@ const updateTask = async (req, res) => {
         return res.status(400).json({ message: "assignedTo must be an array" });
       }
 
-      if (
-        !assignedTo.every(
-          (user) => String(user.orgId) === String(req.user.orgId)
-        )
-      ) {
-        return res
-          .status(403)
-          .json({ message: "Users must belong to the same organization." });
-      }
-
-      const assignedToIds = assignedTo?.map((user) => user.userId);
+      const assignedToIds = assignedTo?.map((user) =>
+        user.userId ? user.userId : user
+      );
 
       task.assignedTo = assignedToIds;
     }
